@@ -32,8 +32,8 @@ public class ControlRfidService extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getStringExtra("action");
             switch (action){
-                case "getStatus":
-                case "statusChange":
+                case "getDeviceStatus":
+                case "deviceStatusChange":
                     String status = intent.getStringExtra("status");
                     elementReaderStatus.setText(status);
                     break;

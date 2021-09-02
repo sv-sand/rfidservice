@@ -80,7 +80,7 @@ public class RfidService extends Service implements RFIDHandler.ResponseHandlerI
     public void handleStatusEvents(String status) {
         Intent intent = new Intent();
         intent.setAction(BROADCAST_ANSWER);
-        intent.putExtra("action", "statusChange");
+        intent.putExtra("action", "deviceStatusChange");
         intent.putExtra("status", status);
         sendBroadcast(intent);
     }
@@ -92,10 +92,10 @@ public class RfidService extends Service implements RFIDHandler.ResponseHandlerI
         public void onReceive(Context context, Intent intent) {
             String action = intent.getStringExtra("action");
             switch(action){
-                case ("getInfo"):       getInfo();         break;
-                case ("getStatus"):     getStatus();       break;
-                case ("connect"):       Connect();         break;
-                case ("disconnect"):    Disconnect();      break;
+                case ("getInfo"):           getInfo();         break;
+                case ("getDeviceStatus"):   getDeviceStatus();       break;
+                case ("connect"):           Connect();         break;
+                case ("disconnect"):        Disconnect();      break;
             }
         }
         public void Register() {
@@ -119,10 +119,10 @@ public class RfidService extends Service implements RFIDHandler.ResponseHandlerI
         sendBroadcast(intent);
     }
 
-    private void getStatus() {
+    private void getDeviceStatus() {
         Intent intent = new Intent();
         intent.setAction("ru.sanddev.rfidservice.answer");
-        intent.putExtra("action", "getStatus");
+        intent.putExtra("action", "getDeviceStatus");
         intent.putExtra("status", rfidHandler.getStatus());
         sendBroadcast(intent);
     }
