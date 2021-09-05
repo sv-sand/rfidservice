@@ -1,5 +1,6 @@
 package ru.sanddev.rfidservice;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,13 +11,15 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.List;
+
 public class ControlRfidService extends AppCompatActivity {
 
     private Receiver receiver;
 
     // UI elements
     private TextView elementServiceStatus;
-    private TextView elementReaderStatus;
+    private TextView elementDeviceStatus;
     private TextView elementTextRfid;
 
     // Construtors & destructors
@@ -27,34 +30,46 @@ public class ControlRfidService extends AppCompatActivity {
     // Inner broadcast receiver class
     private class Receiver extends BroadcastReceiver {
         public static final String BROADCAST_ACTION = "ru.sanddev.rfidservice.answer";
+        private Boolean isRegistered=false;
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getStringExtra("action");
-            switch (action){
-                case "getDeviceStatus":
-                case "deviceStatusChange":
-                    String status = intent.getStringExtra("status");
-                    elementReaderStatus.setText(status);
+            String type = intent.getStringExtra("type");
+            switch (type){
+                case "ServiceStatus":
+                    String serviceStatus = intent.getStringExtra("status");
+                    elementServiceStatus.setText(serviceStatus);
                     break;
 
-                case "tagData":
-                    String tagData = intent.getStringExtra("tagData");
+                case "DeviceStatus":
+                    String deviceStatus = intent.getStringExtra("status");
+                    elementDeviceStatus.setText(deviceStatus);
+                    break;
+
+                case "TagData":
+                    String tagData = intent.getStringExtra("data");
                     elementTextRfid.setText(tagData);
                     break;
 
-                case "getInfo":
+                case "Info":
                     String text = intent.getStringExtra("text");
                     elementTextRfid.setText(text);
                     break;
+                default:
             }
 
         }
+
+        // Interface methods
         public void Register() {
-            registerReceiver(this, new IntentFilter(BROADCAST_ACTION));
+            if (!isRegistered)
+                registerReceiver(this, new IntentFilter(BROADCAST_ACTION));
+            isRegistered = true;
         }
         public void UnRegister() {
-            unregisterReceiver(receiver);
+            if (isRegistered)
+                unregisterReceiver(this);
+            isRegistered = false;
         }
     }
 
@@ -64,12 +79,18 @@ public class ControlRfidService extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_control_rfid_service);
 
-        receiver.Register();
-
         // UI
         elementServiceStatus = findViewById(R.id.ServiceStatus);
-        elementReaderStatus = findViewById(R.id.ReaderStatus);
+        elementDeviceStatus = findViewById(R.id.DeviceStatus);
         elementTextRfid = findViewById(R.id.TextRfid);
+
+        elementServiceStatus.setText("");
+        elementDeviceStatus.setText("");
+        elementTextRfid.setText("");
+
+        // Init
+        receiver.Register();
+        checkRfidService();
     }
 
     @Override
@@ -92,8 +113,14 @@ public class ControlRfidService extends AppCompatActivity {
 
     // Interface methods
     public void onButtonStartServiceClick(View view){
-        Intent intent = new Intent(ControlRfidService.this, RfidService.class);
-        startService(intent);
+        Intent intent = new Intent(this, RfidService.class);
+        //startService(intent);
+        startForegroundService(intent);
+
+//        Intent intent = new Intent();
+//        intent.setAction("ru.sanddev.rfidservice.START");
+//        sendBroadcast(intent);
+
     }
     public void onButtonStopServiceClick(View view){
         Intent intent = new Intent(ControlRfidService.this, RfidService.class);
@@ -102,19 +129,45 @@ public class ControlRfidService extends AppCompatActivity {
     public void onButtonGetInfoClick(View view) {
         Intent intent = new Intent();
         intent.setAction("ru.sanddev.rfidservice.action");
-        intent.putExtra("action", "getInfo");
+        intent.putExtra("action", "GetInfo");
         sendBroadcast(intent);
+
+        elementTextRfid.setText("");
     }
     public void onButtonConnectClick(View view) {
         Intent intent = new Intent();
         intent.setAction("ru.sanddev.rfidservice.action");
-        intent.putExtra("action", "connect");
+        intent.putExtra("action", "Connect");
         sendBroadcast(intent);
     }
     public void onButtonDisconnectClick(View view) {
         Intent intent = new Intent();
         intent.setAction("ru.sanddev.rfidservice.action");
-        intent.putExtra("action", "disconnect");
+        intent.putExtra("action", "Disconnect");
         sendBroadcast(intent);
     }
+
+    // Other methods
+    private void checkRfidService() {
+        ActivityManager am = (ActivityManager)this.getSystemService(ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> rs = am.getRunningServices(50);
+        String serviceName = RfidService.class.getName();
+
+        for (int i=0; i<rs.size(); i++) {
+            ActivityManager.RunningServiceInfo rsi = rs.get(i);
+            if(serviceName.equalsIgnoreCase(rsi.service.getClassName())){
+                elementServiceStatus.setText("online");
+                return;
+            }
+        }
+        elementServiceStatus.setText("offline");
+    }
+
+    private void getDeviceStatus() {
+        Intent intent = new Intent();
+        intent.setAction("ru.sanddev.rfidservice.action");
+        intent.putExtra("action", "GetDeviceStatus");
+        sendBroadcast(intent);
+    }
+
 }

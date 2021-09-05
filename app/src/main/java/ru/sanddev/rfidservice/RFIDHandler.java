@@ -64,8 +64,8 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
             return "Disconnected";
     }
 
-    String Connect() {
-        return connect();
+    void Connect() {
+        connect();
     }
 
     void Disconnect() {
@@ -84,8 +84,8 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         InitSDK();
     }
 
-    String onResume() {
-        return connect();
+    void onResume() {
+        connect();
     }
 
     void onPause() {
@@ -137,8 +137,8 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         protected String doInBackground(Void... voids) {
             Log.d(TAG, "ConnectionTask");
             GetAvailableReader();
-            //if (reader != null)
-            //    return connect();
+            if (reader != null)
+                return "Not connected";
             return "Failed to find reader";
         }
 
@@ -193,7 +193,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
     }
 
 
-    private synchronized String connect() {
+    private synchronized void connect() {
         if (reader != null) {
             Log.d(TAG, "connect " + reader.getHostName());
             try {
@@ -201,7 +201,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                     // Establish connection to the RFID Reader
                     reader.connect();
                     ConfigureReader();
-                    return "Connected";
+                    context.handleStatusEvents("Connected");
                 }
             } catch (InvalidUsageException e) {
                 e.printStackTrace();
@@ -209,10 +209,9 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 e.printStackTrace();
                 Log.d(TAG, "OperationFailureException " + e.getVendorMessage());
                 String des = e.getResults().toString();
-                return "Connection failed" + e.getVendorMessage() + " " + des;
+                context.handleStatusEvents("Connection failed " + e.getVendorMessage() + " " + des);
             }
         }
-        return "";
     }
 
     private void ConfigureReader() {
