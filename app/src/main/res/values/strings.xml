@@ -1,6 +1,24 @@
 <resources>
     <string name="app_name">RFIDService</string>
-    <string name="ButtonStartServiceName">Start RFID service</string>
-    <string name="ButtonStopServiceName">Stop RFID service</string>
-    <string name="ButtonSendToServiceName">Send</string>
+    <string name="app_title">RFID сервис</string>
+
+    <string name="ButtonStartServiceText">Запустить</string>
+    <string name="ButtonStopServiceText">Остановить</string>
+    <string name="ButtonGetDeviceStatusText">Запросить статус ридера</string>
+    <string name="ButtonGetInfoText">Информация о сервисе</string>
+    <string name="ButtonConnectText">Подключить</string>
+    <string name="ButtonDisconnectText">Отключить</string>
+    <string name="TextService">Сервис</string>
+    <string name="TextDevice">Ридер</string>
+    <string name="SwitchShowToastText">Показывать сообщения</string>
+
+    <string name="NotificationTitle">@string/app_title</string>
+    <string name="NotificationText">Обеспечивает работу RFID ридера Zebra RFD8500</string>
+    <string name="NotificationStopActionTitle">При закрытии RFID ридер будет не доступна</string>
+
+    <string name="TextServiceStarted">Сервис запущен</string>
+    <string name="TextServiceStopped">Сервис остановлен</string>
+    <string name="TextDeviceConnected">Устройство подключено</string>
+    <string name="TextDeviceDisconnected">Устройство отключено</string>
+    <string name="TextReadedTags">Прочитано %1 меток</string>
 </resources>

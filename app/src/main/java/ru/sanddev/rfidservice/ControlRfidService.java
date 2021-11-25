@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -15,43 +16,40 @@ import java.util.List;
 
 public class ControlRfidService extends AppCompatActivity {
 
-    private Receiver receiver;
-
     // UI elements
     private TextView elementServiceStatus;
     private TextView elementDeviceStatus;
     private TextView elementTextRfid;
 
-    // Construtors & destructors
-    public ControlRfidService (){
-        receiver = new Receiver();
-    }
+    private Boolean isServiceCall = false;
+    private RfidSettings params;
 
     // Inner broadcast receiver class
+    private Receiver receiver;
+
     private class Receiver extends BroadcastReceiver {
-        public static final String BROADCAST_ACTION = "ru.sanddev.rfidservice.answer";
-        private Boolean isRegistered=false;
+        private Boolean isRegistered = false;
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            String type = intent.getStringExtra("type");
-            switch (type){
-                case "ServiceStatus":
+            String action = intent.getAction();
+            switch (action){
+                case RfidService.BROADCAST_ANSWER_SERVICE_STATUS:
                     String serviceStatus = intent.getStringExtra("status");
-                    elementServiceStatus.setText(serviceStatus);
+                    onReceiveServiceStatus(serviceStatus);
                     break;
 
-                case "DeviceStatus":
+                case RfidService.BROADCAST_ANSWER_DEVICE_STATUS:
                     String deviceStatus = intent.getStringExtra("status");
-                    elementDeviceStatus.setText(deviceStatus);
+                    onReceiveDeviceStatus(deviceStatus);
                     break;
 
-                case "TagData":
+                case RfidService.BROADCAST_ANSWER_TAGDATA:
                     String tagData = intent.getStringExtra("data");
                     elementTextRfid.setText(tagData);
                     break;
 
-                case "Info":
+                case RfidService.BROADCAST_ANSWER_INFO:
                     String text = intent.getStringExtra("text");
                     elementTextRfid.setText(text);
                     break;
@@ -62,8 +60,14 @@ public class ControlRfidService extends AppCompatActivity {
 
         // Interface methods
         public void Register() {
-            if (!isRegistered)
-                registerReceiver(this, new IntentFilter(BROADCAST_ACTION));
+            if (!isRegistered) {
+                IntentFilter intentFilter = new IntentFilter();
+                intentFilter.addAction(RfidService.BROADCAST_ANSWER_SERVICE_STATUS);
+                intentFilter.addAction(RfidService.BROADCAST_ANSWER_DEVICE_STATUS);
+                intentFilter.addAction(RfidService.BROADCAST_ANSWER_INFO);
+                intentFilter.addAction(RfidService.BROADCAST_ANSWER_TAGDATA);
+                registerReceiver(this, intentFilter);
+            }
             isRegistered = true;
         }
         public void UnRegister() {
@@ -71,6 +75,87 @@ public class ControlRfidService extends AppCompatActivity {
                 unregisterReceiver(this);
             isRegistered = false;
         }
+    }
+
+    protected void onReceiveServiceStatus(String status) {
+        elementServiceStatus.setText(status);
+
+        switch(status) {
+            case "online":
+                elementServiceStatus.setTextColor(getColor(R.color.TextSuccess));
+                Toast.makeText(this, getString(R.string.TextDeviceConnected), Toast.LENGTH_SHORT).show();
+                break;
+            case "offline":
+                elementServiceStatus.setTextColor(getColor(R.color.TextError));
+                Toast.makeText(this, getString(R.string.TextDeviceDisconnected), Toast.LENGTH_SHORT).show();
+                break;
+            default:
+                Toast.makeText(this, status, Toast.LENGTH_SHORT).show();
+        }
+    }
+    protected void onReceiveDeviceStatus(String status) {
+        elementDeviceStatus.setText(status);
+
+        switch(status) {
+            case "connected":
+                elementDeviceStatus.setTextColor(getColor(R.color.TextSuccess));
+                Toast.makeText(this, getString(R.string.TextDeviceConnected), Toast.LENGTH_SHORT).show();
+                break;
+            case "not connected":
+                elementDeviceStatus.setTextColor(getColor(R.color.TextError));
+                Toast.makeText(this, getString(R.string.TextDeviceDisconnected), Toast.LENGTH_SHORT).show();
+                break;
+            default:
+                Toast.makeText(this, status, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Service methods
+    private void startService() {
+        if (RfidService.isStarted()) {
+            Toast.makeText(this, "Сервис уже запущен", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(this, RfidService.class);
+        startForegroundService(intent);
+    }
+    private void stopService() {
+        Intent intent = new Intent(this, RfidService.class);
+        stopService(intent);
+    }
+    private void checkRfidService() {
+        ActivityManager am = (ActivityManager)this.getSystemService(ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> rs = am.getRunningServices(50);
+        String serviceName = RfidService.class.getName();
+
+        for (int i=0; i<rs.size(); i++) {
+            ActivityManager.RunningServiceInfo rsi = rs.get(i);
+            if(serviceName.equalsIgnoreCase(rsi.service.getClassName())){
+                onReceiveServiceStatus("online");
+                return;
+            }
+        }
+        onReceiveServiceStatus("offline");
+    }
+    private void getDeviceStatus() {
+        Intent intent = new Intent();
+        intent.setAction(RfidService.BROADCAST_ACTION);
+        intent.putExtra("action", "GetDeviceStatus");
+        sendBroadcast(intent);
+    }
+    private void sendParams() {
+        Intent intent = new Intent();
+        intent.setAction(RfidService.BROADCAST_ACTION);
+        intent.putExtra("action", "SetParams");
+        intent.putExtra("params", params.getJSON());
+        sendBroadcast(intent);
+    }
+
+    // Constructor & destructor
+    public ControlRfidService() {
+        receiver = new Receiver();
+        params = new RfidSettings();
     }
 
     // Parrent methods
@@ -88,9 +173,17 @@ public class ControlRfidService extends AppCompatActivity {
         elementDeviceStatus.setText("");
         elementTextRfid.setText("");
 
-        // Init
-        receiver.Register();
-        checkRfidService();
+        // Check calling source
+        Intent intent = getIntent();
+        isServiceCall = intent.getBooleanExtra("IsServiceCall", false);
+        if (isServiceCall) {
+            // Init
+            checkRfidService();
+            getDeviceStatus();
+        }
+        else {
+            startService();
+        }
     }
 
     @Override
@@ -102,7 +195,13 @@ public class ControlRfidService extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        receiver.Register();
+
+        if (isServiceCall) {
+            receiver.Register();
+        }
+        else {
+            finish();
+        }
     }
 
     @Override
@@ -113,22 +212,14 @@ public class ControlRfidService extends AppCompatActivity {
 
     // Interface methods
     public void onButtonStartServiceClick(View view){
-        Intent intent = new Intent(this, RfidService.class);
-        //startService(intent);
-        startForegroundService(intent);
-
-//        Intent intent = new Intent();
-//        intent.setAction("ru.sanddev.rfidservice.START");
-//        sendBroadcast(intent);
-
+        startService();
     }
     public void onButtonStopServiceClick(View view){
-        Intent intent = new Intent(ControlRfidService.this, RfidService.class);
-        stopService(intent);
+        stopService();
     }
     public void onButtonGetInfoClick(View view) {
         Intent intent = new Intent();
-        intent.setAction("ru.sanddev.rfidservice.action");
+        intent.setAction(RfidService.BROADCAST_ACTION);
         intent.putExtra("action", "GetInfo");
         sendBroadcast(intent);
 
@@ -136,38 +227,17 @@ public class ControlRfidService extends AppCompatActivity {
     }
     public void onButtonConnectClick(View view) {
         Intent intent = new Intent();
-        intent.setAction("ru.sanddev.rfidservice.action");
+        intent.setAction(RfidService.BROADCAST_ACTION);
         intent.putExtra("action", "Connect");
         sendBroadcast(intent);
     }
     public void onButtonDisconnectClick(View view) {
         Intent intent = new Intent();
-        intent.setAction("ru.sanddev.rfidservice.action");
+        intent.setAction(RfidService.BROADCAST_ACTION);
         intent.putExtra("action", "Disconnect");
         sendBroadcast(intent);
     }
 
     // Other methods
-    private void checkRfidService() {
-        ActivityManager am = (ActivityManager)this.getSystemService(ACTIVITY_SERVICE);
-        List<ActivityManager.RunningServiceInfo> rs = am.getRunningServices(50);
-        String serviceName = RfidService.class.getName();
-
-        for (int i=0; i<rs.size(); i++) {
-            ActivityManager.RunningServiceInfo rsi = rs.get(i);
-            if(serviceName.equalsIgnoreCase(rsi.service.getClassName())){
-                elementServiceStatus.setText("online");
-                return;
-            }
-        }
-        elementServiceStatus.setText("offline");
-    }
-
-    private void getDeviceStatus() {
-        Intent intent = new Intent();
-        intent.setAction("ru.sanddev.rfidservice.action");
-        intent.putExtra("action", "GetDeviceStatus");
-        sendBroadcast(intent);
-    }
 
 }

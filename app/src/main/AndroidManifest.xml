@@ -6,22 +6,14 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_launcher_foreground"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.RFIDService">
-        <receiver
-            android:name=".RfidReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter >
-                <action android:name="ru.sanddev.rfidservice.START" />
-            </intent-filter>
-        </receiver>
 
         <activity
             android:name=".ControlRfidService"
-            android:label="Control RFID service">
+            android:label="@string/app_title">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

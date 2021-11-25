@@ -1,34 +1,40 @@
 package ru.sanddev.rfidservice;
 
-import android.content.Context;
-import android.content.SharedPreferences;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class RfidSettings {
-    private Context appContext;
-    public static final String PREFERENCE_NAME = "ServicePreference";
-    private SharedPreferences settings;
 
-    // Preference set
-    public String DeviceName;
+    private boolean showToast = false;
 
-    // Construtors & destructors
-    public RfidSettings(Context context) {
-        this.appContext = context;
-        Read();
+    // Constructor & destructor
+
+    // Getters & setters
+    public boolean getShowToast() {
+        return showToast;
+    }
+    public void setShowToast(boolean value) {
+        showToast = value;
     }
 
-    // Methods
-    public void Read() {
-        settings = appContext.getSharedPreferences(PREFERENCE_NAME, appContext.MODE_PRIVATE);
-        DeviceName = settings.getString("DeviceName", "");
+    // JSON
+    public String getJSON() {
+        JSONObject paramsJson = new JSONObject();
+
+        try {
+            paramsJson.put("ShowToast", showToast);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return paramsJson.toString();
     }
-
-    public void Write() {
-        SharedPreferences.Editor editor = settings.edit();
-
-        editor.putString("DeviceName", DeviceName);
-
-        editor.apply();
+    public void setJson(String paramsString) {
+        try {
+            JSONObject paramsJson = new JSONObject(paramsString);
+            showToast = paramsJson.getBoolean("ShowToast");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
-
 }

@@ -61,7 +61,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         if(isReaderConnected())
             return "Connected";
         else
-            return "Disconnected";
+            return "Not connected";
     }
 
     void Connect() {
@@ -264,7 +264,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
             if (reader != null) {
                 reader.Events.removeEventsListener(eventHandler);
                 reader.disconnect();
-                context.handleStatusEvents("Disconnected");
+                context.handleStatusEvents("Not connected");
                 };
         } catch (InvalidUsageException e) {
             e.printStackTrace();
